@@ -33,6 +33,8 @@ android {
     }
     buildFeatures {
         compose = true
+        // For BuildConfig.DEBUG, which gates seedDemoSession().
+        buildConfig = true
     }
 }
 
