@@ -1,0 +1,471 @@
+# Badminton Court Shuffler — Claude Code Build Plan
+
+A phase-by-phase series of copy-paste prompts. Run them **in order**. Each phase ends with a short *verify before continuing* checklist — don't skip it, because every later phase assumes the previous one actually works.
+
+---
+
+## Before you start (5 minutes, no Claude Code needed)
+
+1. Install Node 20+ and the Expo Go app on your phone (iOS or Android).
+2. Make an empty folder and open a terminal in it:
+   ```
+   mkdir badminton-shuffler && cd badminton-shuffler
+   git init
+   claude
+   ```
+3. Keep this document open. Paste one prompt at a time.
+
+**Stack being built** (decided for you so Claude Code doesn't wander): Expo + React Native + TypeScript, `expo-router` for the screen flow, Zustand for in-memory state, Vitest for testing the shuffle engine. No database, no backend, no persistence — exactly as you asked.
+
+**Golden rule between phases:** after each phase, run the app on your phone, then commit:
+```
+git add -A && git commit -m "Phase N: <what it does>"
+```
+If a phase goes wrong, `git reset --hard HEAD` puts you back to the last working state instead of arguing with the model.
+
+---
+
+## Phase 0 — Ground rules and spec file
+
+**Goal:** Give Claude Code a permanent memory of the project so every later prompt can be short.
+
+```text
+You are building a mobile app called "Court Shuffler" — a badminton session manager for casual group play.
+
+Before writing any code, create two files in the project root:
+
+1. CLAUDE.md — the persistent working agreement for this repo. It must contain:
+   - Stack: Expo (managed workflow) + React Native + TypeScript (strict mode), expo-router for navigation, Zustand for state, Vitest for unit tests.
+   - Hard constraint: NO persistence layer. No AsyncStorage, no SQLite, no backend, no auth, no network calls. All session state lives in memory and dies when the app is closed. This is intentional — a session is one afternoon of badminton.
+   - Hard constraint: the shuffle/rotation logic must live in pure TypeScript modules under src/engine/ with zero React or React Native imports, so it can be unit tested in isolation.
+   - Code conventions: functional components only, named exports, no default exports except expo-router screens, no `any`, colocate types in src/types.ts.
+   - Rule: never introduce a new dependency without stating why in the commit message.
+
+2. SPEC.md — the product spec. Write it from the following requirements, organised into sections (Session Setup, Rotation Fairness, Scoring, Mid-session Edits, End of Session):
+
+   - The organiser sets up a session by answering questions on sequential screens, one topic per screen, in this order: (1) number of courts available, (2) session start time and end time, (3) average minutes per game, (4) scoring rules, (5) player names.
+   - After setup, one primary button "Start shuffling" generates the first round.
+   - A round = every available court filled with a doubles match (4 players). Players beyond capacity sit out that round and are first in line for the next one.
+   - Fairness is the core promise: across the session, no player should have played meaningfully more games than any other. Target: the gap between the most-played and least-played active player never exceeds 1 game.
+   - Variety matters too: avoid repeating the same partner or the same opponents until the engine has no better option.
+   - Scores are entered per game (e.g. 21-15). Both players on a winning team receive identical win credit; individual totals then diverge as players are shuffled into new teams.
+   - Players can be added or removed at ANY time during the session. A late joiner must slot into the rotation so that all active players get equal games FROM THAT POINT FORWARD — the late joiner must not monopolise courts to "catch up", and must not erase the points lead earned by players who arrived on time.
+   - An "End session" action freezes the session and shows the top three players with their earned points, followed by a "Clear session" action that wipes everything for a fresh start.
+
+Do not write any application code yet. Write only these two files, then show me SPEC.md and stop.
+```
+
+**Verify before continuing:** read `SPEC.md`. If it misstates any rule, fix it now with a follow-up message — every later phase reads from this file.
+
+---
+
+## Phase 1 — Project scaffold
+
+**Goal:** A running app on your phone. Nothing else.
+
+```text
+Scaffold the project per CLAUDE.md.
+
+- Initialise an Expo TypeScript project in the current directory (it already contains CLAUDE.md, SPEC.md and a .git folder — do not wipe them).
+- Set up expo-router with a stack navigator.
+- Install and configure Zustand and Vitest. Vitest must be configured to run only src/engine/**/*.test.ts in a node environment (no jsdom, no React Native transforms needed).
+- Create this folder structure with placeholder files:
+    src/engine/      (pure logic, no React)
+    src/store/       (Zustand stores)
+    src/components/  (shared UI)
+    src/theme/       (design tokens)
+    src/types.ts
+    app/             (expo-router screens)
+- app/index.tsx should render a single centred screen that says "Court Shuffler" and a "Get started" button that does nothing yet.
+- Add npm scripts: "start", "test", "typecheck".
+
+Then run `npm run typecheck` and `npm test` and confirm both pass. Tell me the exact command to run the app on my phone.
+```
+
+**Verify before continuing:** `npx expo start`, scan the QR code, see the placeholder screen on your phone. Commit.
+
+---
+
+## Phase 2 — Data model
+
+**Goal:** Every type the rest of the app will use, agreed once.
+
+```text
+Define the complete data model in src/types.ts. Do not build UI or logic yet.
+
+Types needed:
+
+Player:
+- id (string, uuid), name (string), isActive (boolean)
+- joinedAtRound (number) — index of the round they became available
+- gamesPlayed (number) — true count, used for stats
+- queueCredit (number) — a virtual head start used ONLY by the rotation queue, never shown to the user (see SessionEngine spec in a later phase)
+- wins, losses (number)
+- pointsFor, pointsAgainst (number) — rally points scored/conceded across all games
+- restStreak (number) — consecutive rounds sat out
+- partnerHistory: Record<playerId, number> — times partnered with each other player
+- opponentHistory: Record<playerId, number> — times faced each other player
+
+Team: exactly two player ids.
+Match: id, courtNumber, teamA (Team), teamB (Team), status ('pending' | 'completed' | 'voided'), scoreA, scoreB (number | null), roundIndex.
+Round: index, matches (Match[]), sittingOut (playerId[]), status ('in-progress' | 'completed').
+
+SessionConfig: courtCount, startTime (ISO string), endTime (ISO string), minutesPerGame, pointsPerWin, pointsPerLoss, targetScore (e.g. 21), lateJoinerMode ('fair-forward' | 'catch-up').
+
+SessionState: config, players (Player[]), rounds (Round[]), currentRoundIndex, status ('setup' | 'active' | 'ended').
+
+LeaderboardEntry: rank, player, sessionPoints, pointDifferential, winRate.
+
+Add a defaults constant: courtCount 2, minutesPerGame 12, pointsPerWin 3, pointsPerLoss 1, targetScore 21, lateJoinerMode 'fair-forward'.
+
+Write clear doc comments on queueCredit and lateJoinerMode explaining their fairness purpose. Then run typecheck.
+```
+
+**Verify before continuing:** `npm run typecheck` passes.
+
+---
+
+## Phase 3 — The shuffle engine (the heart of the app)
+
+**Goal:** Pure, tested rotation logic. This is the phase worth being slow and picky about.
+
+```text
+Build the rotation engine as pure TypeScript in src/engine/. No React imports. Implement exactly this specification.
+
+FILE: src/engine/rotation.ts
+
+generateRound(state: SessionState, seed?: number): Round
+
+Step 1 — Capacity.
+  eligible = players where isActive === true
+  playableSlots = min(config.courtCount * 4, floor(eligible.length / 4) * 4)
+  If playableSlots === 0, return a Round with no matches and everyone sitting out.
+
+Step 2 — Selection queue. Sort eligible players by:
+  1. effectiveGames ASC, where effectiveGames = gamesPlayed + queueCredit
+  2. restStreak DESC (whoever has waited longest goes first)
+  3. seeded random jitter (deterministic given the seed, so tests are reproducible)
+  Take the first `playableSlots` players. The remainder sit out; increment their restStreak.
+
+Step 3 — Team formation. Do NOT pair players naively in queue order. Instead:
+  - Generate N candidate arrangements (N = 300) by seeded-shuffling the selected players and splitting them into groups of 4, then into two teams of 2 within each group.
+  - Score every candidate with this cost function (lower is better):
+      cost = PARTNER_WEIGHT * sum over every team of partnerHistory[a][b]
+           + OPPONENT_WEIGHT * sum over every match of the 4 cross-pair opponentHistory counts
+    Constants: PARTNER_WEIGHT = 3, OPPONENT_WEIGHT = 1. Repeating a partner is worse than repeating an opponent.
+  - Return the lowest-cost arrangement. Ties broken by the seeded RNG.
+
+Step 4 — Assign matches to courts 1..courtCount in order.
+
+FILE: src/engine/scoring.ts
+
+recordResult(state, matchId, scoreA, scoreB): SessionState
+  - Pure function, returns a new state. Never mutates.
+  - Reject if scores are equal, negative, or the match is not 'pending'.
+  - For each of the 4 players: gamesPlayed += 1, restStreak = 0, update pointsFor/pointsAgainst, increment wins or losses, increment partnerHistory for their teammate and opponentHistory for both opponents.
+  - Mark the match 'completed'.
+
+buildLeaderboard(state): LeaderboardEntry[]
+  sessionPoints = wins * config.pointsPerWin + losses * config.pointsPerLoss
+  Sort by: sessionPoints DESC → pointDifferential DESC → winRate DESC → pointsFor DESC → gamesPlayed ASC → name A-Z.
+  Assign ranks with proper tie handling (two players tied for 1st, next player is 3rd).
+
+FILE: src/engine/roster.ts
+
+addPlayer(state, name): SessionState
+  - If session status is 'setup', queueCredit = 0.
+  - If session is already 'active':
+      'fair-forward' mode (default): queueCredit = the MINIMUM gamesPlayed among currently active players. This makes the newcomer enter the queue level with the least-played player, so everyone gets equal games from now on — the newcomer neither monopolises courts nor displaces others. Their wins/points genuinely start at zero, so players who arrived on time keep their earned lead.
+      'catch-up' mode: queueCredit = 0, so the newcomer is prioritised until their games played matches the group.
+  - Set joinedAtRound = currentRoundIndex.
+
+removePlayer(state, playerId): SessionState
+  - Set isActive = false. Never delete — their stats stay on the leaderboard.
+  - Return a flag `affectsCurrentRound: true` if they are in a pending match of the current round, so the UI can ask what to do.
+
+substituteInPendingMatch(state, outgoingPlayerId, incomingPlayerId): SessionState
+
+FILE: src/engine/fairness.ts
+
+getFairnessReport(state): { spread: number, mostPlayed: Player[], leastPlayed: Player[], isFair: boolean }
+  spread = max(gamesPlayed) - min(gamesPlayed) across ACTIVE players only. isFair = spread <= 1.
+
+estimateRemainingRounds(state, now: Date): number
+  Based on config.endTime and config.minutesPerGame.
+
+FILE: src/engine/rng.ts
+  A small seeded PRNG (mulberry32) so all randomness is reproducible in tests.
+
+Write the code, then run typecheck. Do not write tests yet — that is the next prompt.
+```
+
+---
+
+## Phase 3b — Prove the engine is fair
+
+**Goal:** Don't take the model's word for it. Simulate.
+
+```text
+Write Vitest tests in src/engine/__tests__/ that prove the fairness guarantees. Use seeded RNG so every test is deterministic.
+
+Required tests:
+
+1. Capacity: 2 courts + 11 active players → 8 play, 3 sit out. 2 courts + 7 players → 4 play, 3 sit out.
+2. Long-run fairness: simulate a full session — 3 courts, 14 players, 20 rounds, recording a random result each round. Assert that at every round boundary the games-played spread across active players is <= 1.
+3. No starvation: in the same simulation, assert no player ever sits out 3 rounds in a row.
+4. Partner variety: 2 courts, 8 players, 10 rounds. Assert no pair partners a 3rd time before every possible pair has partnered at least once.
+5. Late joiner, fair-forward: run 6 rounds with 8 players, then add a 9th. Simulate 10 more rounds. Assert (a) the 9th player's games played over those 10 rounds is within 1 of every other player's games over the same window, and (b) the 9th player never plays more than 2 games more than the group average across any 4-round window (no monopolising).
+6. Late joiner keeps the early birds' lead: in the same scenario, assert the newcomer's sessionPoints cannot exceed a player who won every game before they arrived, given equal performance afterwards.
+7. Removal mid-session: remove an active player, assert they vanish from future rounds, their stats remain on the leaderboard, and remaining players still satisfy spread <= 1 within 3 rounds.
+8. Scoring: a 21-15 win credits both winners identically; both losers get pointsPerLoss; pointsFor/Against are correct; partner and opponent histories increment.
+9. Leaderboard ties: construct a tie and assert the tiebreak chain and rank numbering (1, 1, 3) are correct.
+10. Purity: assert recordResult and addPlayer do not mutate the input state object.
+
+Run the tests. If any fail, fix the ENGINE, not the test — the tests encode the product promise. Report the final results to me.
+```
+
+**Verify before continuing:** all tests green. Ask Claude Code: *"Show me the games-played distribution table from the test 2 simulation"* — eyeball it yourself. Commit.
+
+---
+
+## Phase 4 — State store
+
+```text
+Build the Zustand store in src/store/sessionStore.ts. It is a thin wrapper — all logic stays in src/engine/.
+
+Actions: setConfig, addPlayer, removePlayer, startSession, generateNextRound, recordResult, voidMatch, substitutePlayer, endSession, clearSession.
+
+Selectors: useCurrentRound, useActivePlayers, useLeaderboard, useFairnessReport, useSessionProgress (rounds played vs estimated remaining).
+
+Rules:
+- The store holds SessionState in memory only. No persistence middleware. If the app reloads, state is gone by design.
+- Every mutating action delegates to the pure engine function and replaces state with the returned value.
+- clearSession resets to the initial empty state and sets status back to 'setup'.
+
+Add a dev-only helper `seedDemoSession(playerCount)` that fills the store with fake players and a few completed rounds, so I can test the live screens without typing 12 names each time. Gate it behind __DEV__.
+
+Run typecheck.
+```
+
+---
+
+## Phase 5 — Design system
+
+**Goal:** Lock the visual language before building screens, so screens don't drift.
+
+```text
+Read SPEC.md, then build the design system in src/theme/ before any screens.
+
+Design brief: this is a phone held in one sweaty hand in a noisy sports hall, glanced at between games. Legibility at arm's length and big tap targets matter more than density. The aesthetic should come from the sport itself — court line markings, the chalk-white on court-green, the geometry of service boxes, the feel of a hall scoreboard — not from a generic SaaS dashboard.
+
+Produce src/theme/tokens.ts containing:
+- A palette of 5-6 named hex values with a stated rationale for each. Do not use a warm cream background with a terracotta accent, and do not use near-black with a single acid-green accent — both are overused AI defaults. Choose something grounded in the badminton hall instead and justify it to me in one line each.
+- A type scale with distinct roles: a condensed, tabular-figure face for scores and numbers (scoreboard energy), a clean readable face for body and labels. Use expo-google-fonts. Numbers must be tabular so scores don't jitter as they update.
+- A spacing scale (4pt base), radii, and two elevation levels.
+- Minimum tap target 48x48.
+
+Then build these shared components in src/components/ using only those tokens:
+- Screen (safe-area wrapper with consistent padding)
+- StepHeader (step number, title, subtitle, progress dots for the setup flow)
+- PrimaryButton, SecondaryButton, DangerButton (with disabled and pressed states)
+- NumberStepper (big minus / value / plus, for court count and game length)
+- TextField
+- PlayerChip (name + remove affordance)
+- CourtCard — the signature component. It should visibly evoke a badminton court: the doubles boundary, the net line across the middle, and the four players placed in their own quadrants. Team A on one side of the net, Team B on the other. It has three visual states: pending, score-entry, and completed.
+- EmptyState
+
+Build a temporary screen at app/kitchen-sink.tsx that renders every component in every state so I can review them on my phone. Tell me when it's ready.
+```
+
+**Verify before continuing:** open `/kitchen-sink` on your phone. This is the moment to say *"the CourtCard is too busy, simplify it"* or *"increase the score font size"*. Iterate here — fixing it now costs one message, fixing it after eight screens costs eight. Commit when happy, then have it delete the kitchen-sink route later.
+
+---
+
+## Phase 6 — Setup wizard (one question per screen, in order)
+
+```text
+Build the setup flow as sequential expo-router screens. One question per screen, forward-only with a back button, progress dots on every screen. Nothing else on the screen — no side navigation, no tabs.
+
+app/setup/courts.tsx     — "How many courts do you have?" NumberStepper, 1-8. Shows a live hint: "2 courts = 8 players on at once."
+app/setup/time.tsx       — "When are you playing?" Start time and end time pickers. Validate end is after start. Shows the session length.
+app/setup/pace.tsx       — "How long is a typical game?" NumberStepper in minutes, 5-30, default 12. Shows the estimate: "About 14 rounds today."
+app/setup/scoring.tsx    — "How are we scoring?" Target score (15/21/custom), points per win, points per loss. Sensible defaults preselected so this screen can be passed with one tap.
+app/setup/players.tsx    — "Who's playing?" The final and most important setup screen. Text field + Add, list of PlayerChips, live count, remove any chip. Validate: no empty names, no duplicate names (suggest "Alex (2)"), minimum 4 players before continuing. Shows a live readout: "12 players, 3 courts — 12 on court, 0 resting each round."
+
+The last screen's primary button is "Start shuffling". It writes the config, calls startSession, generates round 1, and routes to the live session screen.
+
+Requirements:
+- Every screen writes to the Zustand store immediately, so going back and forward never loses input.
+- The keyboard must never cover the input on the players screen — use KeyboardAvoidingView and keep the field pinned above the list.
+- Adding a player should keep focus in the field so I can type name-Enter-name-Enter rapidly for 14 people.
+- app/index.tsx becomes a start screen: "Court Shuffler", a one-line description, and "New session".
+
+Run typecheck and tell me when I can test the flow.
+```
+
+**Verify before continuing:** walk the whole flow on your phone and try to break it — back out mid-way, add 20 players, add a duplicate name, set end time before start time. Commit.
+
+---
+
+## Phase 7 — Live session screen
+
+**Goal:** The screen you'll actually stare at for three hours.
+
+```text
+Build the live session screen at app/session/index.tsx. This is the app's home base once shuffling starts.
+
+Layout, top to bottom:
+- Compact header: "Round 4" with a subtle progress line ("about 9 rounds left, ends 6:00pm"), and the fairness indicator — a small pill showing green when the games-played spread is 0-1, amber at 2+, tappable to open a breakdown of who has played how many games.
+- A vertical list of CourtCards, one per court, each showing court number, the four player names in their quadrants, and the current state.
+- A "Resting this round" strip listing the players sitting out. Keep it visually quiet but present — people want to see they are up next.
+- A bottom action bar, always reachable with a thumb: "Edit players" (secondary) and "Next round" (primary). "Next round" is disabled with an explanatory line until every court has a recorded score.
+- An overflow menu with "End session".
+
+Score entry:
+- Tapping a pending CourtCard opens a bottom sheet for that match. Two big score steppers, one per team, showing the team's player names. Quick-fill buttons for common results (21-x) to make entry a two-tap job. Confirm writes the result through the store.
+- Once recorded, the CourtCard flips to its completed state showing the final score, the winning side clearly marked, and the points each player just earned. Animate this transition once, briefly — it is the moment of payoff after a game.
+- Allow tapping a completed card to correct a mis-entered score before the round advances.
+
+"Next round" calls generateNextRound and animates the new pairings in.
+
+Do not add any feature not listed here. Keep the screen calm — it is read at a glance across a court.
+```
+
+**Verify before continuing:** use `seedDemoSession(12)` to jump straight here. Play through five rounds, entering scores. Watch the fairness pill. Commit.
+
+---
+
+## Phase 8 — Mid-session roster edits
+
+**Goal:** The late-friend problem, handled gracefully.
+
+```text
+Build the roster editing sheet, reachable from the "Edit players" button at any time during an active session.
+
+Contents:
+- A list of all players with games played, wins, and current points. Active players first, players who left shown dimmed at the bottom under "Left early".
+- "Add player" field. On submit, call addPlayer and show a clear confirmation of what will happen: "Sarah joins from round 5. She'll get the same number of games as everyone from here on, but starts at 0 points." That sentence is important — it is the app explaining its own fairness rule, so nobody argues about it in the hall.
+- Each active player has a "Mark as left" action with confirmation.
+- If removing a player who is in a pending match this round, present exactly two choices: "Substitute a resting player" (show the next player in the rotation queue as the recommended pick, and allow choosing another) or "Void this match" (nobody gets credit, court frees up).
+- Changes take effect from the NEXT round unless a substitution is made into the current one. Show this clearly so the organiser is never surprised.
+- Adding a player mid-round must not disturb any in-progress match.
+
+After closing the sheet, the session screen must reflect the new roster count and the updated fairness reading.
+```
+
+**Verify before continuing:** the real test — run a demo session for six rounds, add a player, then play ten more rounds and confirm the newcomer gets a fair share without hogging courts, and hasn't leapfrogged the early birds on points. Commit.
+
+---
+
+## Phase 9 — Leaderboard, end session, clear
+
+```text
+Build the closing flow.
+
+1. A live leaderboard at app/session/leaderboard.tsx, reachable from the session header. Full ranked list with points, W-L record, games played, and point differential. Update it live as scores come in.
+
+2. "End session" from the overflow menu shows a confirmation ("This locks the session. You can still see the results."), then routes to app/session/results.tsx.
+
+3. app/session/results.tsx is the celebration screen — the one moment in this app where boldness is warranted:
+   - The top three players on a podium, first place visually dominant, each with their name, earned points, and W-L record.
+   - Handle ties honestly: if two players tie for first, show two first places and explain the tiebreak that was applied.
+   - Below the podium, a collapsible "Full standings" list of everyone.
+   - A few session stats in small type: total games played, most games played by one person, longest win streak, best partnership (the pair with the best combined record).
+   - A "Share results" action that copies a clean plain-text summary to the clipboard — top three, then full standings — ready to paste into a WhatsApp group.
+   - At the bottom, a DangerButton "Clear session and start fresh". It requires a confirmation, calls clearSession, and returns to the home screen with a completely empty state ready for next week.
+
+4. Guard against accidental loss: the clear confirmation must state plainly that nothing is saved anywhere and the results cannot be recovered.
+
+Animate the podium reveal once on mount, respecting the reduce-motion accessibility setting.
+```
+
+**Verify before continuing:** end a demo session, check the podium, copy the share text and paste it somewhere, then clear and confirm you land on a genuinely empty new session. Commit.
+
+---
+
+## Phase 10 — Hardening
+
+```text
+Harden the app against real-world use in a sports hall. Work through this list and report what you found and fixed:
+
+1. Edge cases in the engine — write tests for: fewer than 4 active players mid-session; exactly 4 players and 3 courts (only 1 court usable); all players removed; a player removed then re-added; the session running past its end time; a round generated when every eligible player has identical stats.
+2. Guard the UI for each of those: never render a broken round, always explain why a court is empty.
+3. Score validation: reject equal scores, negative scores, and warn (but allow) on scores that don't reach the target.
+4. Prevent double-submission of a score from a fast double tap.
+5. Screen-wake: keep the display awake during an active session (expo-keep-awake) — the organiser's phone sits on a bench between games.
+6. Accessibility: labels on all interactive elements, minimum 48pt targets, contrast checked against WCAG AA, reduce-motion respected.
+7. Test on the smallest common screen (iPhone SE width, 375pt) and confirm nothing clips or overflows.
+8. Add an error boundary that offers "Continue session" rather than losing state on a render crash.
+9. Warn before the app can lose state: since nothing is persisted, add a confirmation when navigating back out of an active session.
+
+Then run typecheck, all tests, and lint. Report the results.
+```
+
+---
+
+## Phase 11 — Polish pass
+
+```text
+Do a final quality pass. Before changing anything, review the app against SPEC.md and give me a written self-critique: which screens feel templated, where the visual language is inconsistent, and what a badminton organiser would find annoying after three hours of use. Then fix the top five issues you identified.
+
+Constraints for this pass:
+- No new features. Only refinement of what exists.
+- Spend boldness in one place only. The results podium and the score-entry moment are where a flourish belongs; everything else should get quieter, not louder.
+- Remove one thing. Find the element that is doing the least work on the busiest screen and cut it.
+- Verify the type scale and spacing are applied consistently — no one-off font sizes or magic numbers left in screens.
+- Delete app/kitchen-sink.tsx and any leftover dev scaffolding except seedDemoSession.
+
+Show me the critique first, then wait for my go-ahead before making the changes.
+```
+
+---
+
+## Phase 12 — Ship it to your phone
+
+```text
+Prepare the app for real use this weekend.
+
+1. Set the app name to "Court Shuffler", generate an app icon and splash screen from the theme palette, and configure app.json (bundle identifier, portrait orientation lock, no unnecessary permissions).
+2. Explain my options for getting this onto my phone permanently, with the tradeoffs: Expo Go (fastest, needs the dev server running), EAS Build development/preview build (installable standalone, needs an Expo account), and a production build for the app stores. Recommend one for a personal app used by one organiser.
+3. Give me the exact commands for your recommendation.
+4. Write a short README.md: what the app does, how to run it, and a note that nothing is persisted by design.
+```
+
+---
+
+## Useful prompts to keep in your back pocket
+
+Paste these mid-build whenever needed.
+
+**When the model over-builds:**
+```text
+Stop. You added functionality that is not in SPEC.md. Revert those additions and implement only what the current phase asked for.
+```
+
+**When something feels off but you can't articulate it:**
+```text
+Explain in plain language what happens, step by step, when I tap "Next round" — from the button press through to the new pairings appearing. Reference the actual functions being called.
+```
+
+**When the shuffle looks wrong in real use:**
+```text
+Add a dev-only debug panel to the session screen showing, for each active player: games played, queueCredit, effectiveGames, restStreak, and their last three partners. Gate it behind __DEV__ and a long-press on the round header. I need to see why the engine chose this arrangement.
+```
+
+**Before you trust a phase:**
+```text
+Review the code you just wrote against SPEC.md and CLAUDE.md. List anything that violates a constraint or is not covered by a test. Be critical — do not tell me it is fine if it is not.
+```
+
+**When it breaks:**
+```text
+Do not guess at a fix. Add logging or a test that reproduces the failure first, show me the actual failing output, then fix the root cause.
+```
+
+---
+
+## Two decisions worth knowing you're making
+
+**The late joiner rule.** In `fair-forward` mode a newcomer enters the rotation queue level with the *least-played* active player. This is why it does what you want: they get exactly the same number of games as everyone else from that moment on, they never bump other people off courts to "catch up", and because their points genuinely start at zero, whoever showed up on time keeps the lead they earned. The alternative (`catch-up`) is in the config if your group ever prefers it, but fair-forward is the default and the one your requirement describes.
+
+**Nothing is saved.** Closing the app mid-session loses the session, exactly as you specified. Phase 10 adds a confirmation before you can navigate out, and Phase 12's keep-awake setting reduces the risk. If after a few weeks you find you want session recovery, the whole state is one Zustand store — adding AsyncStorage later is roughly a ten-line change, and worth doing as its own phase rather than smuggling it in early.
