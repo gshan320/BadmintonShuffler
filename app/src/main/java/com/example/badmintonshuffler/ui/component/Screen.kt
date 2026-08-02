@@ -15,7 +15,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.example.badmintonshuffler.ui.theme.CourtColors
 import com.example.badmintonshuffler.ui.theme.Space
 
@@ -69,7 +68,7 @@ fun Screen(
                     bottomBar()
                 }
             } else {
-                Box(Modifier.navigationBarsPadding().fillMaxWidth().padding(0.dp))
+                Box(Modifier.navigationBarsPadding().fillMaxWidth())
             }
         }
     }

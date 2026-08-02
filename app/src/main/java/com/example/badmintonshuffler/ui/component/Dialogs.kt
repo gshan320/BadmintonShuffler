@@ -15,6 +15,7 @@ import androidx.compose.ui.window.Dialog
 import com.example.badmintonshuffler.ui.theme.CourtColors
 import com.example.badmintonshuffler.ui.theme.CourtType
 import com.example.badmintonshuffler.ui.theme.Radius
+import com.example.badmintonshuffler.ui.theme.Sizes
 import com.example.badmintonshuffler.ui.theme.Space
 
 /**
@@ -38,7 +39,7 @@ fun ConfirmDialog(
         Column(
             modifier = Modifier
                 .background(CourtColors.CourtDeep, RoundedCornerShape(Radius.lg))
-                .border(1.dp, CourtColors.LineFaint, RoundedCornerShape(Radius.lg))
+                .border(Sizes.hairline, CourtColors.LineFaint, RoundedCornerShape(Radius.lg))
                 .padding(Space.xl),
         ) {
             Text(text = title, style = CourtType.SectionTitle, color = CourtColors.CourtLine)

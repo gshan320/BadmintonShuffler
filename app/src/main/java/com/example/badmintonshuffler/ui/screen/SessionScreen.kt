@@ -30,6 +30,7 @@ import com.example.badmintonshuffler.model.Round
 import com.example.badmintonshuffler.model.SessionState
 import com.example.badmintonshuffler.state.SessionProgress
 import com.example.badmintonshuffler.ui.KeepScreenOn
+import com.example.badmintonshuffler.ui.rememberReduceMotion
 import com.example.badmintonshuffler.ui.component.CourtCard
 import com.example.badmintonshuffler.ui.component.CourtCardState
 import com.example.badmintonshuffler.ui.component.CourtGlyph
@@ -68,6 +69,7 @@ fun SessionScreen(
     modifier: Modifier = Modifier,
 ) {
     KeepScreenOn()
+    val reduceMotion = rememberReduceMotion()
 
     val round = state.currentRound
     var menuOpen by remember { mutableStateOf(false) }
@@ -103,18 +105,12 @@ fun SessionScreen(
             modifier = Modifier.fillMaxWidth().padding(top = Space.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Round ${(round?.index ?: 0) + 1}",
-                    style = CourtType.RoundTitle,
-                    color = CourtColors.CourtLine,
-                )
-                Text(
-                    text = progressLine(progress),
-                    style = CourtType.Caption,
-                    color = CourtColors.Chalk60,
-                )
-            }
+            Text(
+                text = "Round ${(round?.index ?: 0) + 1}",
+                style = CourtType.RoundTitle,
+                color = CourtColors.CourtLine,
+                modifier = Modifier.weight(1f),
+            )
 
             FairnessPill(
                 spread = fairness.spread,
@@ -154,6 +150,14 @@ fun SessionScreen(
             }
         }
 
+        // Its own row rather than squeezed under the round number: at 375dp the header already
+        // carries a pill and an overflow button, and this line was wrapping to three lines.
+        Text(
+            text = progressLine(progress),
+            style = CourtType.Caption,
+            color = CourtColors.Chalk60,
+        )
+
         Spacer(Modifier.height(Space.xl))
 
         // --- Courts ---
@@ -174,6 +178,7 @@ fun SessionScreen(
                             MatchStatus.COMPLETED -> CourtCardState.COMPLETED
                             MatchStatus.VOIDED -> CourtCardState.VOIDED
                         },
+                        animateResult = !reduceMotion,
                         onClick = if (match.status == MatchStatus.VOIDED) null
                         else ({ onOpenMatch(match) }),
                     )

@@ -59,7 +59,10 @@ fun addPlayer(
     val queueCredit = when {
         state.status == SessionStatus.SETUP -> 0
         state.config.lateJoinerMode == LateJoinerMode.CATCH_UP -> 0
-        else -> state.activePlayers.minOfOrNull { it.gamesPlayed } ?: 0
+        // Minimum EFFECTIVE games, not raw games played. If someone else joined late a moment ago
+        // their raw count is still 0 while their queue position is level with the group; reading the
+        // raw count would hand this newcomer a credit of 0 and let them monopolise every court.
+        else -> state.activePlayers.minOfOrNull { it.effectiveGames } ?: 0
     }
 
     val player = Player(
@@ -105,9 +108,10 @@ fun reinstatePlayer(state: SessionState, playerId: String): SessionState {
     if (player.isActive) return state
 
     // Re-entering is a late join: level with the least-played active player, so returning doesn't
-    // hand them a queue advantage over everyone who stayed on court.
+    // hand them a queue advantage over everyone who stayed on court. Measured in effective games
+    // for the same reason as in addPlayer.
     val queueCredit = if (state.status == SessionStatus.ACTIVE) {
-        (state.activePlayers.minOfOrNull { it.gamesPlayed } ?: 0) - player.gamesPlayed
+        (state.activePlayers.minOfOrNull { it.effectiveGames } ?: 0) - player.gamesPlayed
     } else {
         0
     }

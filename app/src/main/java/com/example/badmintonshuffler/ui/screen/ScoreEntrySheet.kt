@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -34,6 +35,7 @@ import com.example.badmintonshuffler.engine.checkScore
 import com.example.badmintonshuffler.model.Match
 import com.example.badmintonshuffler.model.MatchStatus
 import com.example.badmintonshuffler.model.SessionState
+import com.example.badmintonshuffler.ui.component.Hint
 import com.example.badmintonshuffler.ui.component.DangerButton
 import com.example.badmintonshuffler.ui.component.NumberStepper
 import com.example.badmintonshuffler.ui.component.PrimaryButton
@@ -62,8 +64,8 @@ fun ScoreEntrySheet(
     val target = state.config.targetScore
     val isCorrection = match.status == MatchStatus.COMPLETED
 
-    var scoreA by rememberSaveable(match.id) { mutableStateOf(match.scoreA ?: target) }
-    var scoreB by rememberSaveable(match.id) { mutableStateOf(match.scoreB ?: 0) }
+    var scoreA by rememberSaveable(match.id) { mutableIntStateOf(match.scoreA ?: target) }
+    var scoreB by rememberSaveable(match.id) { mutableIntStateOf(match.scoreB ?: 0) }
     var submitting by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -118,7 +120,7 @@ fun ScoreEntrySheet(
                 horizontalArrangement = Arrangement.spacedBy(Space.sm),
                 verticalArrangement = Arrangement.spacedBy(Space.sm),
             ) {
-                val commonLosses = listOf(target - 2, target - 6, target - 9, target - 13)
+                val commonLosses = listOf(target - 2, target - 6, target - 12)
                     .filter { it >= 0 }
                     .distinct()
                 commonLosses.forEach { loss ->
@@ -221,7 +223,7 @@ private fun QuickFill(text: String, onClick: () -> Unit) {
         modifier = Modifier
             .heightIn(min = Sizes.minTapTarget)
             .background(CourtColors.ServiceBox, RoundedCornerShape(Radius.pill))
-            .border(1.dp, CourtColors.LineFaint, RoundedCornerShape(Radius.pill))
+            .border(Sizes.hairline, CourtColors.LineFaint, RoundedCornerShape(Radius.pill))
             .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = Space.lg),
         contentAlignment = Alignment.Center,

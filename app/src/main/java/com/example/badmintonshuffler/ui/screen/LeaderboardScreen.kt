@@ -66,7 +66,7 @@ fun LeaderboardScreen(
 fun StandingsTable(entries: List<LeaderboardEntry>, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = Space.md, vertical = Space.sm),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Space.sm, vertical = Space.sm),
         ) {
             HeaderCell("#", Modifier.width(Sizes.rankColumn))
             HeaderCell("PLAYER", Modifier.weight(1f), TextAlign.Start)
@@ -90,7 +90,7 @@ private fun StandingsRow(entry: LeaderboardEntry) {
             .fillMaxWidth()
             .heightIn(min = Sizes.minTapTarget)
             .background(CourtColors.ServiceBox, RoundedCornerShape(Radius.sm))
-            .padding(horizontal = Space.md, vertical = Space.sm)
+            .padding(horizontal = Space.sm, vertical = Space.sm)
             .alpha(if (player.isActive) 1f else 0.55f)
             .semantics(mergeDescendants = true) {
                 contentDescription = "Rank ${entry.rank}, ${player.name}, " +
@@ -150,7 +150,7 @@ private fun HeaderCell(
 private fun Cell(text: String, modifier: Modifier = Modifier, color: Color) {
     Text(
         text = text,
-        style = CourtType.Numeric,
+        style = CourtType.NumericSmall,
         color = color,
         textAlign = TextAlign.End,
         modifier = modifier,

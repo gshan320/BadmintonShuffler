@@ -93,6 +93,32 @@ class RosterTest {
     }
 
     @Test
+    fun `two late joiners in a row both enter level, not just the first`() {
+        // Regression: credit used to be read from the minimum raw gamesPlayed. The moment a first
+        // late joiner was on the roster with 0 raw games, the second inherited a credit of 0 and
+        // monopolised every court for the rest of the afternoon.
+        val base = simulate(activeSession(playerCount = 10, courts = 2), rounds = 8).last()
+        val groupLevel = base.activePlayers.minOf { it.effectiveGames }
+
+        val one = addPlayer(base, "First Late")
+        val two = addPlayer(one, "Second Late")
+
+        assertEquals(groupLevel, two.named("First Late").effectiveGames)
+        assertEquals(groupLevel, two.named("Second Late").effectiveGames)
+
+        val final = simulate(two, rounds = 10, seedBase = SIM_SEED + 700).last()
+        val firstGames = final.named("First Late").gamesPlayed
+        val secondGames = final.named("Second Late").gamesPlayed
+
+        assertTrue(
+            "The two late joiners got $firstGames and $secondGames games — they arrived together " +
+                "and should have shared equally",
+            kotlin.math.abs(firstGames - secondGames) <= 1,
+        )
+        assertTrue(getFairnessReport(final).isFair)
+    }
+
+    @Test
     fun `queue credit equals the least-played active player`() {
         val state = simulate(activeSession(playerCount = 9, courts = 2), rounds = 5).last()
         val leastPlayed = state.activePlayers.minOf { it.gamesPlayed }

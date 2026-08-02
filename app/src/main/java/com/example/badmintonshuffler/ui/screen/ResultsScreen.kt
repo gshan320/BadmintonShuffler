@@ -1,5 +1,6 @@
 package com.example.badmintonshuffler.ui.screen
 
+import android.content.ClipData
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -21,21 +22,22 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.badmintonshuffler.engine.SessionStats
 import com.example.badmintonshuffler.model.LeaderboardEntry
-import com.example.badmintonshuffler.model.SessionConfig
 import com.example.badmintonshuffler.ui.rememberReduceMotion
 import com.example.badmintonshuffler.ui.component.ConfirmDialog
 import com.example.badmintonshuffler.ui.component.DangerButton
+import com.example.badmintonshuffler.ui.component.Hint
 import com.example.badmintonshuffler.ui.component.EmptyState
 import com.example.badmintonshuffler.ui.component.PrimaryButton
 import com.example.badmintonshuffler.ui.component.Screen
@@ -44,6 +46,7 @@ import com.example.badmintonshuffler.ui.theme.CourtType
 import com.example.badmintonshuffler.ui.theme.Radius
 import com.example.badmintonshuffler.ui.theme.Sizes
 import com.example.badmintonshuffler.ui.theme.Space
+import kotlinx.coroutines.launch
 
 /**
  * The celebration screen — the one place in this app where boldness is warranted.
@@ -54,11 +57,11 @@ import com.example.badmintonshuffler.ui.theme.Space
 fun ResultsScreen(
     entries: List<LeaderboardEntry>,
     stats: SessionStats,
-    config: SessionConfig,
     onClearSession: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val clipboard = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
     val reduceMotion = rememberReduceMotion()
 
     var revealed by remember { mutableStateOf(reduceMotion) }
@@ -76,8 +79,13 @@ fun ResultsScreen(
             PrimaryButton(
                 text = if (copied) "Copied to clipboard" else "Share results",
                 onClick = {
-                    clipboard.setText(AnnotatedString(shareText(entries, stats)))
-                    copied = true
+                    val text = shareText(entries, stats)
+                    scope.launch {
+                        clipboard.setClipEntry(
+                            ClipEntry(ClipData.newPlainText("Badminton results", text))
+                        )
+                        copied = true
+                    }
                 },
             )
             Spacer(Modifier.height(Space.sm))

@@ -37,9 +37,9 @@ fun StepHeader(
     step: Int,
     totalSteps: Int,
     title: String,
+    modifier: Modifier = Modifier,
     subtitle: String? = null,
     onBack: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.padding(top = Space.md, bottom = Space.xl)) {
         Row(verticalAlignment = Alignment.CenterVertically) {

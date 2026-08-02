@@ -38,6 +38,7 @@ import com.example.badmintonshuffler.model.SessionState
 import com.example.badmintonshuffler.state.RemovalPrompt
 import com.example.badmintonshuffler.ui.component.ConfirmDialog
 import com.example.badmintonshuffler.ui.component.CourtTextField
+import com.example.badmintonshuffler.ui.component.Hint
 import com.example.badmintonshuffler.ui.component.DangerButton
 import com.example.badmintonshuffler.ui.component.PrimaryButton
 import com.example.badmintonshuffler.ui.component.SecondaryButton
@@ -267,7 +268,7 @@ private fun SubstituteDialog(
         Column(
             modifier = Modifier
                 .background(CourtColors.CourtDeep, RoundedCornerShape(Radius.lg))
-                .border(1.dp, CourtColors.LineFaint, RoundedCornerShape(Radius.lg))
+                .border(Sizes.hairline, CourtColors.LineFaint, RoundedCornerShape(Radius.lg))
                 .padding(Space.xl),
         ) {
             Text(

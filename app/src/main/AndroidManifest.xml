@@ -3,19 +3,22 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <application
-        android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.BadmintonShuffler">
+        android:theme="@style/Theme.CourtShuffler">
+        <!--
+             Portrait-locked on purpose: this is read one-handed at arm's length in a sports hall,
+             and a court list that reflows to landscape mid-round is a distraction, not a feature.
+        -->
         <activity
+            tools:ignore="DiscouragedApi,LockedOrientationActivity"
             android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.BadmintonShuffler"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.CourtShuffler"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

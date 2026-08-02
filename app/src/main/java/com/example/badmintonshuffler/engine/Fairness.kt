@@ -12,33 +12,61 @@ import java.time.temporal.ChronoUnit
  */
 
 data class FairnessReport(
-    /** Most games played minus fewest, across active players only. */
+    /**
+     * The gap in *effective* games — what the rotation queue equalises, and therefore the promise
+     * the app is actually making. Fair means this is 0 or 1.
+     */
     val spread: Int,
+    /**
+     * The gap in raw games played. Informational only: it is legitimately large whenever somebody
+     * joined late or came back after a break, and says nothing about whether the shuffler is being
+     * fair.
+     */
+    val rawSpread: Int,
     val mostPlayed: List<Player>,
     val leastPlayed: List<Player>,
     val isFair: Boolean,
-)
+) {
+    /** True when late joins or returns make the raw count look worse than the rotation really is. */
+    val hasLateArrivals: Boolean get() = rawSpread > spread
+}
 
 /**
  * The number the app puts on screen as a pill, and the promise it is making: across a session, no
- * active player should be more than one game ahead of any other.
+ * active player gets meaningfully more court time than any other.
  *
- * Players who have left are excluded — they stopped accruing games when they walked out, and
- * counting them would make the spread grow forever and the indicator meaningless.
+ * Measured on `effectiveGames` (games played + queue credit), not on raw games played. Those are
+ * the same number for everybody who was there at the start, so for a stable roster this is exactly
+ * "most games minus fewest". They diverge only for someone who joined late or came back from a
+ * break — and there the raw count is the wrong measure. A player who arrives at round 15 is fifteen
+ * games behind and always will be; saying so every round would peg the indicator to amber for the
+ * rest of the afternoon and train the organiser to ignore it. What they need to know is whether
+ * court time is being shared evenly *from here*, which is precisely what the queue equalises.
+ *
+ * Players who have left are excluded — they stopped accruing games when they walked out.
  */
 fun getFairnessReport(state: SessionState): FairnessReport {
     val active = state.activePlayers
     if (active.isEmpty()) {
-        return FairnessReport(spread = 0, mostPlayed = emptyList(), leastPlayed = emptyList(), isFair = true)
+        return FairnessReport(
+            spread = 0,
+            rawSpread = 0,
+            mostPlayed = emptyList(),
+            leastPlayed = emptyList(),
+            isFair = true,
+        )
     }
 
-    val max = active.maxOf { it.gamesPlayed }
-    val min = active.minOf { it.gamesPlayed }
+    val max = active.maxOf { it.effectiveGames }
+    val min = active.minOf { it.effectiveGames }
+    val rawMax = active.maxOf { it.gamesPlayed }
+    val rawMin = active.minOf { it.gamesPlayed }
 
     return FairnessReport(
         spread = max - min,
-        mostPlayed = active.filter { it.gamesPlayed == max },
-        leastPlayed = active.filter { it.gamesPlayed == min },
+        rawSpread = rawMax - rawMin,
+        mostPlayed = active.filter { it.effectiveGames == max },
+        leastPlayed = active.filter { it.effectiveGames == min },
         isFair = max - min <= 1,
     )
 }

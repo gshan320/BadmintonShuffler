@@ -12,6 +12,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.example.badmintonshuffler.ui.theme.Sizes
 
 /**
  * The five glyphs this app needs, drawn rather than imported.
@@ -28,7 +29,7 @@ fun CourtIcon(
     contentDescription: String?,
     modifier: Modifier = Modifier,
     tint: Color = Color.White,
-    size: Dp = 24.dp,
+    size: Dp = Sizes.iconDefault,
 ) {
     Canvas(
         modifier = modifier

@@ -69,9 +69,18 @@ This is the core promise of the app.
 
 ### The fairness indicator
 
-The live screen always shows the current spread (most-played minus least-played, active players
-only) as a pill: green at 0–1, amber at 2+. Tapping it opens a breakdown of who has played how
-many games.
+The live screen always shows the current spread as a pill: green at 0–1, amber at 2+. Tapping it
+opens a breakdown of who has played how many games.
+
+The spread is measured on **effective games** (games played + queue credit), not on raw games
+played. For a roster that has been there since the start these are the same number, so the pill
+reads exactly as "most games minus fewest". They diverge only for someone who joined late or came
+back from a break — and there the raw count is the wrong measure: a player who arrives at round 15
+is fifteen games behind and permanently will be, so reporting that would peg the indicator to amber
+for the rest of the afternoon and train the organiser to ignore it. What the pill answers is
+"is court time being shared evenly *from here*", which is exactly what the rotation queue
+equalises. The breakdown still shows everyone's honest raw game count, and says when late arrivals
+are the reason those numbers differ.
 
 ## 3. Scoring
 
@@ -94,8 +103,10 @@ Players can be added or removed at **any** time during a session.
 ### Late joiners — the rule that matters
 
 Default mode is **`FAIR_FORWARD`**. A new player's `queueCredit` is set to the **minimum
-`gamesPlayed` among currently active players**, so they enter the rotation queue level with the
-least-played player. The consequences, which are the whole point:
+`effectiveGames` among currently active players**, so they enter the rotation queue level with the
+least-played player. (Effective, not raw, games: if a second friend arrives moments after the
+first, the first still has a raw count of zero, and reading the raw count would hand the second a
+credit of zero and let them monopolise every court.) The consequences, which are the whole point:
 
 - They get the same number of games as everyone else **from that moment on**.
 - They never monopolise courts to "catch up", so they don't displace people who arrived on time.

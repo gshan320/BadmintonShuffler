@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.example.badmintonshuffler.engine.FairnessReport
 import com.example.badmintonshuffler.model.LeaderboardEntry
 import com.example.badmintonshuffler.ui.component.SecondaryButton
 import com.example.badmintonshuffler.ui.theme.CourtColors
@@ -37,9 +38,10 @@ import com.example.badmintonshuffler.ui.theme.Space
 @Composable
 fun FairnessBreakdownDialog(
     entries: List<LeaderboardEntry>,
-    spread: Int,
+    report: FairnessReport,
     onDismiss: () -> Unit,
 ) {
+    val spread = report.spread
     val active = entries.filter { it.player.isActive }.sortedBy { it.player.gamesPlayed }
     val maxGames = active.maxOfOrNull { it.player.gamesPlayed } ?: 0
 
@@ -47,7 +49,7 @@ fun FairnessBreakdownDialog(
         Column(
             modifier = Modifier
                 .background(CourtColors.CourtDeep, RoundedCornerShape(Radius.lg))
-                .border(1.dp, CourtColors.LineFaint, RoundedCornerShape(Radius.lg))
+                .border(Sizes.hairline, CourtColors.LineFaint, RoundedCornerShape(Radius.lg))
                 .padding(Space.xl),
         ) {
             Text("Games played", style = CourtType.SectionTitle, color = CourtColors.CourtLine)
@@ -55,6 +57,10 @@ fun FairnessBreakdownDialog(
             Text(
                 text = when {
                     active.isEmpty() -> "Nobody is on the roster yet."
+                    spread <= 1 && report.hasLateArrivals ->
+                        "Court time is being shared evenly. The totals below differ because some " +
+                            "people joined after the session started — they are getting the same " +
+                            "number of games as everyone else from the round they arrived."
                     spread <= 1 -> "Everyone is within one game of everyone else. That is as even " +
                         "as doubles gets."
                     else -> "There is a $spread game gap. The shuffler puts the least-played " +

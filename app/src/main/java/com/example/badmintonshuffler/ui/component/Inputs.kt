@@ -191,7 +191,7 @@ fun PlayerChip(
         modifier = modifier
             .heightIn(min = Sizes.minTapTarget)
             .background(CourtColors.ServiceBox, RoundedCornerShape(Radius.pill))
-            .border(1.dp, CourtColors.LineFaint, RoundedCornerShape(Radius.pill))
+            .border(Sizes.hairline, CourtColors.LineFaint, RoundedCornerShape(Radius.pill))
             .padding(start = Space.lg, end = if (onRemove != null) Space.xs else Space.lg),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -201,7 +201,7 @@ fun PlayerChip(
             color = CourtColors.CourtLine,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.widthIn(max = 180.dp),
+            modifier = Modifier.widthIn(max = Sizes.chipNameMaxWidth),
         )
         if (onRemove != null) {
             Spacer(Modifier.width(Space.xs))
@@ -215,7 +215,7 @@ fun PlayerChip(
                     glyph = CourtGlyph.CLOSE,
                     contentDescription = "Remove $name",
                     tint = CourtColors.Chalk60,
-                    size = 20.dp,
+                    size = Sizes.iconSmall,
                 )
             }
         }
@@ -233,7 +233,7 @@ fun EmptyState(
         modifier = modifier
             .fillMaxWidth()
             .background(CourtColors.ServiceBox, RoundedCornerShape(Radius.md))
-            .border(1.dp, CourtColors.LineFaint, RoundedCornerShape(Radius.md))
+            .border(Sizes.hairline, CourtColors.LineFaint, RoundedCornerShape(Radius.md))
             .padding(Space.xl),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

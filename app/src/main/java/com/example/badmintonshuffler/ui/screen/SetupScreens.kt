@@ -32,7 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.badmintonshuffler.model.SessionConfig
 import com.example.badmintonshuffler.model.SessionDefaults
-import com.example.badmintonshuffler.ui.component.CourtTextField
+import com.example.badmintonshuffler.ui.component.Hint
 import com.example.badmintonshuffler.ui.component.NumberStepper
 import com.example.badmintonshuffler.ui.component.PrimaryButton
 import com.example.badmintonshuffler.ui.component.Screen
@@ -336,25 +336,6 @@ private fun ChoiceChip(text: String, selected: Boolean, onClick: () -> Unit) {
 // ---------------------------------------------------------------------------------------------
 // Shared bits
 // ---------------------------------------------------------------------------------------------
-
-@Composable
-fun Hint(text: String, isError: Boolean = false, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(
-                if (isError) CourtColors.FaultRed.copy(alpha = 0.12f) else CourtColors.ServiceBox,
-                RoundedCornerShape(Radius.md),
-            )
-            .padding(Space.lg),
-    ) {
-        Text(
-            text = text,
-            style = CourtType.Body17,
-            color = if (isError) CourtColors.FaultRed else CourtColors.Chalk60,
-        )
-    }
-}
 
 fun formatDuration(minutes: Int): String {
     val h = minutes / 60

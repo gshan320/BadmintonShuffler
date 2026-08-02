@@ -149,11 +149,13 @@ private fun CourtHeader(courtNumber: Int, state: CourtCardState) {
         )
         Spacer(Modifier.weight(1f))
 
+        // No tag on a completed card. The score is right there and the winning side is tinted —
+        // a row of green "DONE" chips was the busiest, least informative thing on the screen.
         when (state) {
             CourtCardState.PENDING -> StatusTag("TAP TO SCORE", CourtColors.ShuttleCork)
             CourtCardState.SCORE_ENTRY -> StatusTag("ENTERING", CourtColors.ShuttleCork)
-            CourtCardState.COMPLETED -> StatusTag("DONE", CourtColors.FairGreen)
             CourtCardState.VOIDED -> StatusTag("VOIDED", CourtColors.Chalk60)
+            CourtCardState.COMPLETED -> Unit
         }
     }
 }
@@ -186,7 +188,7 @@ private fun HalfCourt(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 72.dp)
+            .heightIn(min = Sizes.halfCourtMinHeight)
             .clip(RoundedCornerShape(Radius.sm))
             .background(winnerTint),
         verticalAlignment = Alignment.CenterVertically,
@@ -196,8 +198,8 @@ private fun HalfCourt(
             Quadrant(side.playerNames.getOrNull(0), Modifier.weight(1f))
             Box(
                 Modifier
-                    .width(1.dp)
-                    .height(40.dp)
+                    .width(Sizes.hairline)
+                    .height(Sizes.centreLineHeight)
                     .background(CourtColors.LineFaint)
             )
             Quadrant(side.playerNames.getOrNull(1), Modifier.weight(1f))
@@ -206,7 +208,7 @@ private fun HalfCourt(
         if (showScore) {
             Column(
                 modifier = Modifier
-                    .width(72.dp)
+                    .width(Sizes.courtScoreColumn)
                     .padding(end = Space.xs),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -252,7 +254,7 @@ private fun Net() {
             .fillMaxWidth()
             .padding(vertical = Space.xs)
             .clearAndSetSemantics { },
-        verticalArrangement = Arrangement.spacedBy(1.dp),
+        verticalArrangement = Arrangement.spacedBy(Sizes.hairline),
     ) {
         Box(
             Modifier

@@ -182,7 +182,7 @@ fun CourtShufflerApp(
             if (fairnessOpen) {
                 FairnessBreakdownDialog(
                     entries = leaderboard,
-                    spread = fairness.spread,
+                    report = fairness,
                     onDismiss = { fairnessOpen = false },
                 )
             }
@@ -231,7 +231,6 @@ fun CourtShufflerApp(
             ResultsScreen(
                 entries = leaderboard,
                 stats = stats,
-                config = state.config,
                 onClearSession = {
                     viewModel.clearSession()
                     navController.navigate(Routes.HOME) { popUpTo(Routes.HOME) { inclusive = true } }

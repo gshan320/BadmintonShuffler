@@ -122,6 +122,15 @@ object CourtType {
         fontFeatureSettings = TABULAR,
     )
 
+    /** Table cells. Still tabular, sized so a six-column standings row fits a 375dp screen. */
+    val NumericSmall = TextStyle(
+        fontFamily = Scoreboard,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 17.sp,
+        lineHeight = 20.sp,
+        fontFeatureSettings = TABULAR,
+    )
+
     /** Screen questions. One per screen, so it can afford to be large. */
     val Title = TextStyle(
         fontFamily = Body,
@@ -217,12 +226,32 @@ object Sizes {
     val netThickness = 2.dp
     val courtStroke = 2.dp
 
-    /** Standings table columns. Fixed widths so the numbers line up down the page. */
-    val rankColumn = 32.dp
-    val gamesColumn = 36.dp
-    val recordColumn = 56.dp
-    val diffColumn = 48.dp
-    val pointsColumn = 48.dp
+    /** The faint one-pixel rule used on chips, dialogs and empty states. */
+    val hairline = 1.dp
+
+    val iconDefault = 24.dp
+    val iconSmall = 20.dp
+
+    /** Court-card geometry: a half court, its centre service line, and the scoreboard column. */
+    val halfCourtMinHeight = 72.dp
+    val centreLineHeight = 40.dp
+    val courtScoreColumn = 72.dp
+
+    /** A name on a chip truncates past this rather than pushing the remove button off screen. */
+    val chipNameMaxWidth = 180.dp
+
+    /**
+     * Standings table columns. Fixed widths so the numbers line up down the page.
+     *
+     * These total 176dp. On the narrowest common phone (375dp) that leaves roughly 135dp for the
+     * name after gutters and row padding — enough for a first name plus an initial before it
+     * ellipsises, which is what these lists actually contain.
+     */
+    val rankColumn = 26.dp
+    val gamesColumn = 30.dp
+    val recordColumn = 50.dp
+    val diffColumn = 40.dp
+    val pointsColumn = 40.dp
 
     /** The "Add" button next to a name field. */
     val inlineActionWidth = 96.dp
