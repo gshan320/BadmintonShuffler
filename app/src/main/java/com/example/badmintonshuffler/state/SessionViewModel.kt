@@ -2,7 +2,6 @@ package com.example.badmintonshuffler.state
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.badmintonshuffler.BuildConfig
 import com.example.badmintonshuffler.engine.FairnessReport
 import com.example.badmintonshuffler.engine.ScoreOutcome
 import com.example.badmintonshuffler.engine.ScoreRejection
@@ -236,49 +235,6 @@ class SessionViewModel : ViewModel() {
 
     /** Same session, same sequence of rounds; different sessions, different shuffles. */
     private fun seedFor(state: SessionState): Int = sessionSeed + state.rounds.size * 7919
-
-    // -----------------------------------------------------------------------------------------
-    // Dev helper
-    // -----------------------------------------------------------------------------------------
-
-    /**
-     * Fill the session with fake players and a few played rounds, so the live screens can be
-     * reviewed without typing twelve names into a phone every time. Debug builds only.
-     */
-    fun seedDemoSession(playerCount: Int = 12, roundsToPlay: Int = 3) {
-        if (!BuildConfig.DEBUG) return
-
-        val names = listOf(
-            "Aisha", "Ben", "Chloe", "Dan", "Ella", "Faisal", "Grace", "Hari",
-            "Iris", "Jun", "Kira", "Leo", "Mei", "Nadia", "Omar", "Priya",
-        )
-
-        var demo = SessionState(config = SessionConfig(courtCount = 3))
-        repeat(playerCount) { i ->
-            demo = addPlayer(demo, names.getOrElse(i) { "Player ${i + 1}" })
-        }
-        demo = startSession(demo, sessionSeed)
-
-        val rng = Random(sessionSeed)
-        repeat(roundsToPlay) {
-            demo.currentRound?.matches.orEmpty().forEach { match ->
-                val loser = 12 + rng.nextInt(9)
-                val aWins = rng.nextBoolean()
-                val outcome = recordResult(
-                    demo,
-                    match.id,
-                    if (aWins) 21 else loser,
-                    if (aWins) loser else 21,
-                )
-                if (outcome is ScoreOutcome.Accepted) demo = outcome.state
-            }
-            if (canAdvanceRound(demo)) {
-                demo = startNextRound(demo, seedFor(demo))
-            }
-        }
-
-        _state.value = demo
-    }
 }
 
 data class SessionProgress(

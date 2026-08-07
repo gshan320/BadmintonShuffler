@@ -233,7 +233,7 @@ private fun QuickFill(text: String, onClick: () -> Unit) {
 }
 
 private fun ScoreRejection?.message(): String = when (this) {
-    ScoreRejection.EQUAL_SCORES -> "Badminton has no draws — one side has to be ahead."
+    ScoreRejection.EQUAL_SCORES -> "Badminton has no draws. One side has to be ahead."
     ScoreRejection.NEGATIVE_SCORE -> "Scores cannot be negative."
     ScoreRejection.MATCH_NOT_PENDING -> "That result was already recorded."
     ScoreRejection.MATCH_NOT_FOUND -> "That match is no longer on the board."

@@ -79,7 +79,7 @@ fun SetupPlayersScreen(
             if (!enoughPlayers) {
                 Spacer(Modifier.height(Space.sm))
                 Text(
-                    text = "Doubles needs at least ${SessionDefaults.MIN_PLAYERS} players — " +
+                    text = "Doubles needs at least ${SessionDefaults.MIN_PLAYERS} players, " +
                         "${SessionDefaults.MIN_PLAYERS - players.size} to go.",
                     style = CourtType.Caption,
                     color = CourtColors.Chalk60,
@@ -102,7 +102,7 @@ fun SetupPlayersScreen(
                 modifier = Modifier.weight(1f),
                 placeholder = "Player name",
                 supportingText = when {
-                    isDuplicate -> "Already on the list — this one will be added as " +
+                    isDuplicate -> "Already on the list, this one will be added as " +
                         "\"$trimmed (${players.count { it.name.startsWith(trimmed, true) } + 1})\"."
                     else -> null
                 },
@@ -161,7 +161,7 @@ internal fun readout(playerCount: Int, courtCount: Int): String {
     val courtWord = if (courtCount == 1) "court" else "courts"
 
     if (usableCourts == 0) {
-        return "$playerCount $playerWord, $courtCount $courtWord — not enough for a doubles game yet."
+        return "$playerCount $playerWord, $courtCount $courtWord: not enough for a doubles game yet."
     }
 
     val idleCourts = courtCount - usableCourts
@@ -170,6 +170,6 @@ internal fun readout(playerCount: Int, courtCount: Int): String {
     } else {
         ""
     }
-    return "$playerCount $playerWord, $courtCount $courtWord — $onCourt on court, " +
+    return "$playerCount $playerWord, $courtCount $courtWord: $onCourt on court, " +
         "$resting resting each round$idleNote."
 }

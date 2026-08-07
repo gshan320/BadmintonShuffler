@@ -1,11 +1,15 @@
 package com.example.badmintonshuffler.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -16,6 +20,8 @@ import com.example.badmintonshuffler.model.Match
 import com.example.badmintonshuffler.model.SessionStatus
 import com.example.badmintonshuffler.state.SessionViewModel
 import com.example.badmintonshuffler.ui.component.ConfirmDialog
+import com.example.badmintonshuffler.ui.component.COURT_DRAWN_MS
+import com.example.badmintonshuffler.ui.component.CourtLoadingOverlay
 import com.example.badmintonshuffler.ui.screen.FairnessBreakdownDialog
 import com.example.badmintonshuffler.ui.screen.HomeScreen
 import com.example.badmintonshuffler.ui.screen.LeaderboardScreen
@@ -28,6 +34,19 @@ import com.example.badmintonshuffler.ui.screen.SetupPaceScreen
 import com.example.badmintonshuffler.ui.screen.SetupPlayersScreen
 import com.example.badmintonshuffler.ui.screen.SetupScoringScreen
 import com.example.badmintonshuffler.ui.screen.SetupTimeScreen
+import kotlinx.coroutines.delay
+
+/**
+ * Why the court is being drawn, and what to call it while it is.
+ *
+ * Both moments are the rotation engine picking a draw — the only two places in the app where the
+ * answer on screen is genuinely new — which is why these are the only two that get the animation.
+ */
+private enum class DrawingCourts(val label: String?) {
+    NONE(null),
+    ENTERING("Setting the courts"),
+    NEXT_ROUND("Drawing the next round"),
+}
 
 /**
  * The whole screen flow. A forward-only setup stack, then a session that owns the rest.
@@ -55,6 +74,7 @@ fun CourtShufflerApp(
     val leaderboard by viewModel.leaderboard.collectAsStateWithLifecycle()
     val stats by viewModel.stats.collectAsStateWithLifecycle()
     val canAdvance by viewModel.canAdvance.collectAsStateWithLifecycle()
+    val reduceMotion = rememberReduceMotion()
 
     NavHost(navController = navController, startDestination = Routes.HOME) {
 
@@ -63,10 +83,6 @@ fun CourtShufflerApp(
                 onNewSession = {
                     viewModel.clearSession()
                     navController.navigate(Routes.SETUP_COURTS)
-                },
-                onSeedDemo = {
-                    viewModel.seedDemoSession()
-                    navController.navigate(Routes.SESSION)
                 },
             )
         }
@@ -138,23 +154,46 @@ fun CourtShufflerApp(
             var confirmingEnd by remember { mutableStateOf(false) }
             var confirmingExit by remember { mutableStateOf(false) }
 
+            // A draw appearing instantly reads as though nothing was decided. This is remembered
+            // against the nav entry, so it plays on the way in from setup and on each new round —
+            // not every time the leaderboard is closed.
+            var drawing by remember { mutableStateOf(DrawingCourts.ENTERING) }
+
             // Nothing is persisted, so backing out of a live session is a destructive act.
             BackHandler(enabled = state.status == SessionStatus.ACTIVE) {
                 confirmingExit = true
             }
 
-            SessionScreen(
-                state = state,
-                progress = progress,
-                fairness = fairness,
-                canAdvance = canAdvance,
-                onOpenMatch = { openMatch = it },
-                onNextRound = viewModel::generateNextRound,
-                onEditPlayers = { rosterOpen = true },
-                onOpenFairness = { fairnessOpen = true },
-                onOpenLeaderboard = { navController.navigate(Routes.LEADERBOARD) },
-                onEndSession = { confirmingEnd = true },
-            )
+            LaunchedEffect(drawing) {
+                if (drawing != DrawingCourts.NONE) {
+                    delay(COURT_DRAWN_MS)
+                    drawing = DrawingCourts.NONE
+                }
+            }
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                SessionScreen(
+                    state = state,
+                    progress = progress,
+                    fairness = fairness,
+                    canAdvance = canAdvance,
+                    onOpenMatch = { openMatch = it },
+                    onNextRound = {
+                        viewModel.generateNextRound()
+                        drawing = DrawingCourts.NEXT_ROUND
+                    },
+                    onEditPlayers = { rosterOpen = true },
+                    onOpenFairness = { fairnessOpen = true },
+                    onOpenLeaderboard = { navController.navigate(Routes.LEADERBOARD) },
+                    onEndSession = { confirmingEnd = true },
+                )
+
+                // Someone who has asked for less motion has also asked not to be made to wait for
+                // an animation, so they get the draw immediately instead of a still court.
+                if (!reduceMotion) {
+                    drawing.label?.let { CourtLoadingOverlay(label = it) }
+                }
+            }
 
             openMatch?.let { match ->
                 // Re-read from state so the sheet always reflects the latest scores.
@@ -190,7 +229,7 @@ fun CourtShufflerApp(
             if (confirmingEnd) {
                 ConfirmDialog(
                     title = "End the session?",
-                    body = "This locks the session — no more rounds and no more scores. " +
+                    body = "This ends the session. No more rounds and no more scores. " +
                         "You can still see the results.",
                     confirmText = "End session",
                     onConfirm = {

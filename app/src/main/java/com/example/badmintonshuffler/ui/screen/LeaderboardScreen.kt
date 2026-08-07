@@ -17,11 +17,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextOverflow
+
 import com.example.badmintonshuffler.model.LeaderboardEntry
 import com.example.badmintonshuffler.ui.component.EmptyState
 import com.example.badmintonshuffler.ui.component.SecondaryButton
@@ -52,7 +57,7 @@ fun LeaderboardScreen(
         if (entries.isEmpty()) {
             EmptyState(
                 title = "No games yet",
-                body = "Play a round and record a score — the table fills itself in.",
+                body = "Play a round and record a score. The table fills itself in.",
             )
         } else {
             StandingsTable(entries)
@@ -62,17 +67,22 @@ fun LeaderboardScreen(
     }
 }
 
+/**
+ * Three zones, left to right: the index in its own gutter, the name with everything it earned
+ * underneath it, and the points that decide the order.
+ *
+ * The index sits hard against the left edge rather than right-aligned beside the name, so a long
+ * name starts at the same x on every row and reads as a name rather than as the tail of a number.
+ */
 @Composable
 fun StandingsTable(entries: List<LeaderboardEntry>, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = Space.sm, vertical = Space.sm),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Space.md, vertical = Space.sm),
         ) {
-            HeaderCell("#", Modifier.width(Sizes.rankColumn))
+            HeaderCell("#", Modifier.width(Sizes.rankColumn), TextAlign.Start)
+            Spacer(Modifier.width(Space.sm))
             HeaderCell("PLAYER", Modifier.weight(1f), TextAlign.Start)
-            HeaderCell("GP", Modifier.width(Sizes.gamesColumn))
-            HeaderCell("W-L", Modifier.width(Sizes.recordColumn))
-            HeaderCell("+/-", Modifier.width(Sizes.diffColumn))
             HeaderCell("PTS", Modifier.width(Sizes.pointsColumn))
         }
 
@@ -80,6 +90,19 @@ fun StandingsTable(entries: List<LeaderboardEntry>, modifier: Modifier = Modifie
             entries.forEach { entry -> StandingsRow(entry) }
         }
     }
+}
+
+/**
+ * Gold, silver and bronze on the rank, and nothing else.
+ *
+ * The table is a list someone scans for their own name, so the top three are marked by a shade
+ * rather than by a box that makes every row below it look like an also-ran.
+ */
+private fun medalColor(rank: Int): Color = when (rank) {
+    1 -> CourtColors.Gold
+    2 -> CourtColors.Silver
+    3 -> CourtColors.Bronze
+    else -> CourtColors.Chalk60
 }
 
 @Composable
@@ -90,7 +113,7 @@ private fun StandingsRow(entry: LeaderboardEntry) {
             .fillMaxWidth()
             .heightIn(min = Sizes.minTapTarget)
             .background(CourtColors.ServiceBox, RoundedCornerShape(Radius.sm))
-            .padding(horizontal = Space.sm, vertical = Space.sm)
+            .padding(horizontal = Space.md, vertical = Space.sm)
             .alpha(if (player.isActive) 1f else 0.55f)
             .semantics(mergeDescendants = true) {
                 contentDescription = "Rank ${entry.rank}, ${player.name}, " +
@@ -100,8 +123,15 @@ private fun StandingsRow(entry: LeaderboardEntry) {
             },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Cell("${entry.rank}", Modifier.width(Sizes.rankColumn), CourtColors.Chalk60)
-        Column(modifier = Modifier.weight(1f).padding(end = Space.sm)) {
+        Text(
+            text = "${entry.rank}",
+            style = CourtType.NumericSmall,
+            color = medalColor(entry.rank),
+            textAlign = TextAlign.Start,
+            modifier = Modifier.width(Sizes.rankColumn),
+        )
+        Spacer(Modifier.width(Space.sm))
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = player.name,
                 style = CourtType.PlayerName,
@@ -109,25 +139,58 @@ private fun StandingsRow(entry: LeaderboardEntry) {
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (!player.isActive) {
-                Text("Left early", style = CourtType.Caption, color = CourtColors.Chalk60)
-            }
+            Spacer(Modifier.height(Space.xxs))
+            Text(
+                text = recordLine(entry),
+                style = CourtType.Caption,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
-        Cell("${player.gamesPlayed}", Modifier.width(Sizes.gamesColumn), CourtColors.Chalk60)
-        Cell("${player.wins}-${player.losses}", Modifier.width(Sizes.recordColumn), CourtColors.Chalk60)
-        Cell(
-            text = if (entry.pointDifferential > 0) "+${entry.pointDifferential}"
-            else "${entry.pointDifferential}",
-            modifier = Modifier.width(Sizes.diffColumn),
-            color = when {
-                entry.pointDifferential > 0 -> CourtColors.FairGreen
-                entry.pointDifferential < 0 -> CourtColors.FaultRed
-                else -> CourtColors.Chalk60
-            },
+        Spacer(Modifier.width(Space.sm))
+        Text(
+            text = "${entry.sessionPoints}",
+            style = CourtType.Numeric,
+            color = CourtColors.ShuttleCork,
+            textAlign = TextAlign.End,
+            modifier = Modifier.width(Sizes.pointsColumn),
         )
-        Cell("${entry.sessionPoints}", Modifier.width(Sizes.pointsColumn), CourtColors.ShuttleCork)
     }
 }
+
+/**
+ * "6 GP · 4W–2L · +11", as one string so it ellipsises from the end on a narrow screen instead of
+ * dropping a column. The differential keeps its umpire colour; everything else is secondary text.
+ */
+@Composable
+private fun recordLine(entry: LeaderboardEntry): AnnotatedString {
+    val player = entry.player
+    val diff = if (entry.pointDifferential > 0) "+${entry.pointDifferential}"
+    else "${entry.pointDifferential}"
+    val diffColor = when {
+        entry.pointDifferential > 0 -> CourtColors.FairGreen
+        entry.pointDifferential < 0 -> CourtColors.FaultRed
+        else -> CourtColors.Chalk60
+    }
+
+    return buildAnnotatedString {
+        withStyle(SpanStyle(color = CourtColors.Chalk60)) {
+            append("${player.gamesPlayed} GP")
+            append(SEPARATOR)
+            append("${player.wins}W–${player.losses}L")
+            append(SEPARATOR)
+        }
+        withStyle(SpanStyle(color = diffColor)) { append(diff) }
+        if (!player.isActive) {
+            withStyle(SpanStyle(color = CourtColors.Chalk60)) {
+                append(SEPARATOR)
+                append("left early")
+            }
+        }
+    }
+}
+
+private const val SEPARATOR = "  ·  "
 
 @Composable
 private fun HeaderCell(
@@ -144,15 +207,4 @@ private fun HeaderCell(
             modifier = Modifier.fillMaxWidth(),
         )
     }
-}
-
-@Composable
-private fun Cell(text: String, modifier: Modifier = Modifier, color: Color) {
-    Text(
-        text = text,
-        style = CourtType.NumericSmall,
-        color = color,
-        textAlign = TextAlign.End,
-        modifier = modifier,
-    )
 }

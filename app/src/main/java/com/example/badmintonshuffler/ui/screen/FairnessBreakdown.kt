@@ -59,7 +59,7 @@ fun FairnessBreakdownDialog(
                     active.isEmpty() -> "Nobody is on the roster yet."
                     spread <= 1 && report.hasLateArrivals ->
                         "Court time is being shared evenly. The totals below differ because some " +
-                            "people joined after the session started — they are getting the same " +
+                            "people joined after the session started. They are getting the same " +
                             "number of games as everyone else from the round they arrived."
                     spread <= 1 -> "Everyone is within one game of everyone else. That is as even " +
                         "as doubles gets."

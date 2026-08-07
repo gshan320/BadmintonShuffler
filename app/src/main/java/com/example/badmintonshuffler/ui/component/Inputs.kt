@@ -263,7 +263,7 @@ fun RestingStrip(
         Spacer(Modifier.height(Space.sm))
         if (names.isEmpty()) {
             Text(
-                text = "Nobody — everyone is on court.",
+                text = "Nobody. Everyone is on court.",
                 style = CourtType.Body17,
                 color = CourtColors.Chalk60,
             )

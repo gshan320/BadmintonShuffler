@@ -256,7 +256,7 @@ fun SetupScoringScreen(
             step = 4,
             totalSteps = SETUP_STEPS,
             title = "How are we scoring?",
-            subtitle = "The defaults suit most groups — you can pass this screen with one tap.",
+            subtitle = "The defaults suit most groups. You can pass this screen with one tap.",
             onBack = onBack,
         )
 
@@ -301,8 +301,7 @@ fun SetupScoringScreen(
 
         Spacer(Modifier.height(Space.lg))
         Hint(
-            "Points per loss above zero rewards turning up and playing, which tends to keep " +
-                "a mixed-ability group happier."
+            "Turning up to play can be rewarded with more than zero points."
         )
     }
 }

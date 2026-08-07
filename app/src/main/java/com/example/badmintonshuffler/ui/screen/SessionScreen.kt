@@ -221,8 +221,8 @@ private fun com.example.badmintonshuffler.model.Team.toSide(
 private fun progressLine(progress: SessionProgress): String {
     val ends = progress.endTime.display()
     return when {
-        progress.isPastEndTime -> "Past the booked time — ends $ends"
-        progress.estimatedRoundsRemaining == 0 -> "Last round — ends $ends"
+        progress.isPastEndTime -> "Past the booked time, ends $ends"
+        progress.estimatedRoundsRemaining == 0 -> "Last round, ends $ends"
         progress.estimatedRoundsRemaining == 1 -> "About 1 round left, ends $ends"
         else -> "About ${progress.estimatedRoundsRemaining} rounds left, ends $ends"
     }
@@ -242,7 +242,7 @@ private fun emptyCourtsReason(state: SessionState): String {
     val active = state.activePlayers.size
     return when {
         active == 0 -> "Nobody is active. Add players to start a round."
-        active < 4 -> "Only $active ${if (active == 1) "player" else "players"} available — " +
+        active < 4 -> "Only $active ${if (active == 1) "player" else "players"} available, " +
             "doubles needs 4. Add someone, or bring back a player who left."
         else -> "The next round has not been dealt yet."
     }

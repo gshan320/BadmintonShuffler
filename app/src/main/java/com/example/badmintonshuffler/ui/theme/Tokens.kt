@@ -57,6 +57,17 @@ object CourtColors {
     /** A fault: destructive actions and rejected scores. 6.3:1. */
     val FaultRed = Color(0xFFF59C8E)
 
+    // The top three. The three metals every sport uses, pulled toward this palette so they read as
+    // warm and cool light on a court rather than as jewellery. Each clears AA on ServiceBox.
+    /** 5.9:1. */
+    val Gold = Color(0xFFF0BC63)
+
+    /** 7.4:1. */
+    val Silver = Color(0xFFCBD8D5)
+
+    /** 5.0:1. */
+    val Bronze = Color(0xFFDDA87F)
+
     /** Hairline court markings and dividers. */
     val LineFaint = Color(0x33F3F6F1)
     val LineStrong = Color(0x66F3F6F1)
@@ -241,18 +252,48 @@ object Sizes {
     val chipNameMaxWidth = 180.dp
 
     /**
-     * Standings table columns. Fixed widths so the numbers line up down the page.
+     * Standings table columns: an index gutter on the left edge, points on the right, and every
+     * other pixel given to the name.
      *
-     * These total 176dp. On the narrowest common phone (375dp) that leaves roughly 135dp for the
-     * name after gutters and row padding — enough for a first name plus an initial before it
-     * ellipsises, which is what these lists actually contain.
+     * The six-column grid this replaced squeezed names into ~135dp on a 375dp phone, so anything
+     * past "Sarah M" ellipsised. Games, record and differential now sit on a second line under the
+     * name where they have the whole row to breathe, and the name gets ~245dp.
      */
-    val rankColumn = 26.dp
+    val rankColumn = 32.dp
+    val pointsColumn = 56.dp
+
+    /** The games-played column on the fairness breakdown. */
     val gamesColumn = 30.dp
-    val recordColumn = 50.dp
-    val diffColumn = 40.dp
-    val pointsColumn = 40.dp
+
+    /** Win-rate meter on the best-partnership card. Thin enough to read as a rule, not a bar. */
+    val meterHeight = 6.dp
 
     /** The "Add" button next to a name field. */
     val inlineActionWidth = 96.dp
+
+    /** The court that chalks itself in while a round is being drawn. */
+    val loaderCourtHeight = 260.dp
+
+    /** The net gets a heavier line than the court markings, the way it reads from the baseline. */
+    val netLineStroke = 3.dp
+
+    /**
+     * The champion standing in the first-place box on the results screen.
+     *
+     * The figure's column is reserved beside the winner's details rather than laid over them, so a
+     * long name runs out of room before it runs into a leaping badminton player.
+     */
+    val championFigureWidth = 88.dp
+    val championFigureHeight = 136.dp
+}
+
+/**
+ * Proportions, for the places where a fixed dp would be wrong.
+ *
+ * A photograph has to hold its share of the screen on a 5" phone and a tablet alike, and that share
+ * is a fraction, not a measurement.
+ */
+object Ratios {
+    /** How much of the home screen the photograph occupies, measured from the top. */
+    const val homeImageHeight = 0.60f
 }
